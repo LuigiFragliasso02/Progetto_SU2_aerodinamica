@@ -615,8 +615,8 @@ def plot_grid(x, y, colormap=None, plaincolor=None,
   plt.xlabel('x')
   plt.ylabel('y')
   plt.axis('equal')
-  #plt.show(block=False)
-  plt.savefig("grid_plot.png")
+  plt.show(block=False)
+  # plt.savefig("grid_plot.png")
 
   # plt.show()
 
