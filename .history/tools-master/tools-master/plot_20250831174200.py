@@ -50,7 +50,7 @@ def safe_read_csv(filepath):
         return pd.DataFrame()
 
 # =======================
-# 1. Plot Convergenza Spaziale 
+# 1. Plot Convergenza Spaziale (logica invariata)
 # =======================
 def plot_convergenza():
     files = [
@@ -73,6 +73,7 @@ def plot_convergenza():
             df.columns = df.columns.str.strip()
             angle_col = 'AOA' if 'AOA' in df.columns else 'alfa'
 
+            # --- ECCO LA CORREZIONE ---
             # Cerca solo le cifre seguite da 'x', senza il trattino basso iniziale
             match = re.search(r'(\d+)x', label) 
             
@@ -130,7 +131,33 @@ def plot_convergenza():
     print(f"Grafico di convergenza salvato in: '{save_path}'\n")
 
 # =======================
-# 2. Funzione di plot generica per i coefficienti 
+# 2. Funzione di plot generica per i coefficienti
+# =======================
+# def plot_coefficiente(files, labels, outpath, y_col, title, y_label):
+#     """
+#     Funzione generica per plottare un coefficiente (es. Cl, Cd) contro alfa.
+#     """
+#     print(f"--- Inizio Elaborazione per: {title} ---")
+#     plt.figure(figsize=(10, 7))
+    
+#     for filepath, label in zip(files, labels):
+#         df = safe_read_csv(filepath)
+#         # Controlla se il DataFrame e le colonne necessarie non sono vuote
+#         if not df.empty and y_col in df.columns and not df[y_col].dropna().empty:
+#             # Ordina per alfa per assicurare che la linea sia disegnata correttamente
+#             df_sorted = df.sort_values(by="alfa")
+#             plt.plot(df_sorted["alfa"], df_sorted[y_col], marker="o", linestyle="-", label=label)
+            
+#     plt.xlabel("Alfa [°]")
+#     plt.ylabel(y_label)
+#     plt.title(title)
+#     plt.grid(True)
+#     plt.legend()
+#     plt.savefig(outpath)
+#     plt.close() # Chiude la figura per liberare memoria
+#     print(f"Grafico '{title}' salvato in: '{outpath}'\n")
+# =======================
+# 2. Funzione di plot generica per i coefficienti (AGGIORNATA)
 # =======================
 def plot_coefficiente(files, labels, outpath, x_col, y_col, title, x_label, y_label):
     """

@@ -50,7 +50,7 @@ def safe_read_csv(filepath):
         return pd.DataFrame()
 
 # =======================
-# 1. Plot Convergenza Spaziale 
+# 1. Plot Convergenza Spaziale (logica invariata)
 # =======================
 def plot_convergenza():
     files = [
@@ -73,6 +73,7 @@ def plot_convergenza():
             df.columns = df.columns.str.strip()
             angle_col = 'AOA' if 'AOA' in df.columns else 'alfa'
 
+            # --- ECCO LA CORREZIONE ---
             # Cerca solo le cifre seguite da 'x', senza il trattino basso iniziale
             match = re.search(r'(\d+)x', label) 
             
@@ -130,7 +131,7 @@ def plot_convergenza():
     print(f"Grafico di convergenza salvato in: '{save_path}'\n")
 
 # =======================
-# 2. Funzione di plot generica per i coefficienti 
+# 2. Funzione di plot generica per i coefficienti (AGGIORNATA)
 # =======================
 def plot_coefficiente(files, labels, outpath, x_col, y_col, title, x_label, y_label):
     """
