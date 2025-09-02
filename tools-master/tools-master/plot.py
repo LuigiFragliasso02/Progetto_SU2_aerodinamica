@@ -7,9 +7,7 @@ import matplotlib.pyplot as plt
 PLOT_DIR = "plot_tesi"
 os.makedirs(PLOT_DIR, exist_ok=True)
 
-# =======================
-# Funzione robusta per leggere e pulire i file CSV
-# =======================
+
 def safe_read_csv(filepath):
     """
     Legge un file CSV potenzialmente "sporco", pulisce i dati e le colonne,
@@ -18,33 +16,26 @@ def safe_read_csv(filepath):
     try:
         df = pd.read_csv(filepath, on_bad_lines="skip")
         df = df.dropna(how="all")
-        # Pulisce i nomi delle colonne (minuscolo e senza spazi)
         df.columns = [str(c).strip().lower() for c in df.columns]
-        # Sostituisce la virgola con il punto per i decimali
         df = df.replace(",", ".", regex=True)
 
-        # Funzione interna per trovare una colonna tra più nomi possibili
         def trova_col(possibili_nomi):
             for nome in possibili_nomi:
                 if nome in df.columns:
-                    # Converte in numerico, trasformando errori in NaN (Not a Number)
                     col = pd.to_numeric(df[nome], errors="coerce")
-                    if col.notna().sum() > 0: # Controlla se c'è almeno un valore valido
+                    if col.notna().sum() > 0:
                         return col
-            return pd.Series([None] * len(df)) # Ritorna una colonna vuota se non trova nulla
+            return pd.Series([None] * len(df))
 
-        # Costruisce il DataFrame pulito
         dati = pd.DataFrame()
         dati["alfa"] = trova_col(["alfa", "aoa"])
         dati["cl"] = trova_col(["cl", "unnamed: 1", "unnamed: 2"])
         dati["cd"] = trova_col(["cd", "unnamed: 3", "unnamed: 4", "unnamed: 5"])
         
-        # Rimuove le righe dove 'alfa' non è valido
-        dati = dati.dropna(subset=["alfa"])
         return dati
     except FileNotFoundError:
         print(f"ATTENZIONE: Il file '{filepath}' non è stato trovato. Verrà saltato.")
-        return pd.DataFrame() # Ritorna un DataFrame vuoto se il file non esiste
+        return pd.DataFrame()
     except Exception as e:
         print(f"ERRORE durante la lettura di '{filepath}': {e}")
         return pd.DataFrame()
@@ -125,30 +116,40 @@ def plot_convergenza():
 
     axs[0, 0].invert_yaxis()
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    save_path = os.path.join(PLOT_DIR, "1_convergenza_spaziale.png")
+    save_path = os.path.join(PLOT_DIR, "1_convergenza_spaziale_n0012_i0.png")
     plt.savefig(save_path)
     print(f"Grafico di convergenza salvato in: '{save_path}'\n")
 
 # =======================
 # 2. Funzione di plot generica per i coefficienti 
 # =======================
-def plot_coefficiente(files, labels, outpath, x_col, y_col, title, x_label, y_label):
+def plot_coefficiente(files, plot_configs, outpath, x_col, y_col, title, x_label, y_label, x_min=None, x_max=None, y_min=None, y_max=None):
     """
-    Funzione generica per plottare una relazione tra due coefficienti (es. Cl vs Alfa, Cd vs Cl).
+    Funzione generica che accetta configurazioni di stile e altre parametri configurabili.
     """
     print(f"--- Inizio Elaborazione per: {title} ---")
     plt.figure(figsize=(10, 7))
     
-    for filepath, label in zip(files, labels):
+    for filepath, (label, style) in zip(files, plot_configs):
         df = safe_read_csv(filepath)
-        # Controlla che entrambe le colonne necessarie esistano
+        
+        # per limite range asse x 
+        if x_min is not None:
+            df = df[df[x_col] >= x_min]
+        if x_max is not None:
+            df = df[df[x_col] <= x_max]
+
+        # per limite range asse x 
+        if y_min is not None:
+            df = df[df[y_col] >= y_min]
+        if y_max is not None:
+            df = df[df[y_col] <= y_max]
+            
         if not df.empty and x_col in df.columns and y_col in df.columns:
-            # Rimuove le righe dove uno dei due valori è mancante
             df_clean = df.dropna(subset=[x_col, y_col])
             if not df_clean.empty:
-                # Ordina i valori in base alla colonna dell'asse X per un plot corretto
                 df_sorted = df_clean.sort_values(by=x_col)
-                plt.plot(df_sorted[x_col], df_sorted[y_col], marker="o", linestyle="-", label=label)
+                plt.plot(df_sorted[x_col], df_sorted[y_col], label=label, **style)
             
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -159,107 +160,102 @@ def plot_coefficiente(files, labels, outpath, x_col, y_col, title, x_label, y_la
     plt.close()
     print(f"Grafico '{title}' salvato in: '{outpath}'\n")
 
+
+
+
 # =======================
 # ESECUZIONE PRINCIPALE
 # =======================
 if __name__ == "__main__":
-    # 1. Plot di convergenza 
-    plot_convergenza()
+    # Stili di plotting riutilizzabili per coerenza grafica
+    stile_numerico = {'marker': 'o', 'linestyle': '-'}
+    stile_sperimentale = {'marker': 's', 'color': 'red', 'linestyle': 'None'}
 
     # =====================================================================
-    # 2 & 3. PLOT CONFRONTO MESH
+    # 1. Plot di Convergenza Spaziale
+    # =====================================================================
+    plot_convergenza()
+    
+    # =====================================================================
+    # 2 & 3. Plot Confronto al variare del Mesh i=0, n0012
     # =====================================================================
     files_mesh = [
         "ALL_AOA_i=0.000_129x64/dati_numerici_n0012_129_65_i0.csv",
         "ALL_AOA_i=0.000_257x129/dati_numerici_n0012_257_129_i0.000.csv",
         "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.csv"
     ]
-    labels_mesh = ["Mesh 129x64", "Mesh 257x129", "Mesh 513x257"]
-
-    # 2. Plot curva di portanza (Cl vs Alfa)
-    plot_coefficiente(
-        files=files_mesh,
-        labels=labels_mesh,
-        outpath=os.path.join(PLOT_DIR, "2_curva_portanza_mesh.png"),
-        x_col="alfa",
-        y_col="cl",
-        title="Curva di Portanza - Confronto Mesh",
-        x_label="Alfa [°]",
-        y_label="$C_l$"
-    )
-
-    # 3. Plot curva polare (Cd vs Cl) 
-    plot_coefficiente(
-        files=files_mesh,
-        labels=labels_mesh,
-        outpath=os.path.join(PLOT_DIR, "3_curva_polare_mesh.png"),
-        x_col="cl",
-        y_col="cd",
-        title="Curva Polare ($C_d$ vs $C_l$) - Confronto Mesh",
-        x_label="$C_l$",
-        y_label="$C_d$"
-    )
-
-    # =====================================================================
-    # 4 & 5. PLOT CONFRONTO SIMULAZIONE VS SPERIMENTALE
-    # =====================================================================
-    print("\n--- Inizio Elaborazione per Confronto con Dati Sperimentali ---")
+    plot_configs_mesh = [
+        ("Mesh 129x64", stile_numerico),
+        ("Mesh 257x129", stile_numerico),
+        ("Mesh 513x257", stile_numerico)
+    ]
+    plot_coefficiente(files_mesh, plot_configs_mesh, os.path.join(PLOT_DIR, "2_curva_portanza_Variare_mesh_n0012_i0.png"),
+                      x_col="alfa", y_col="cl", title="Curva di Portanza - Confronto Mesh", x_label="Alfa [°]", y_label="$C_l$")
+    plot_coefficiente(files_mesh, plot_configs_mesh, os.path.join(PLOT_DIR, "3_curva_polare_Variare_mesh_n0012_i0.png"),
+                      x_col="cl", y_col="cd", title="Curva Polare ($C_d$ vs $C_l$) - Confronto Mesh", x_label="$C_l$", y_label="$C_d$")
     
-    files_confronto = [
+    # =====================================================================
+    # 4 & 5. Plot Confronto Simulazione Base fully turbolent vs Sperimentale
+    # =====================================================================
+    files_confronto_base = [
         "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.csv",
         "ALL_AOA_i=0.000_513x257/dati_sperimentali_n0012_Ladson_i0.csv" 
     ]
-    labels_confronto = ["Simulazione 513x257", "Dati Sperimentali (Ladson)"]
-
-    # 4. Plot confronto curva di portanza (Cl vs Alfa)
-    plot_coefficiente(
-        files=files_confronto,
-        labels=labels_confronto,
-        outpath=os.path.join(PLOT_DIR, "4_confronto_portanza.png"),
-        x_col="alfa",
-        y_col="cl",
-        title="Confronto Portanza (Simulazione vs Dati Sperimentali)",
-        x_label="Alfa [°]",
-        y_label="$C_l$"
-    )
-
-    # 5. Plot confronto curva polare (Cd vs Cl)
-    plot_coefficiente(
-        files=files_confronto,
-        labels=labels_confronto,
-        outpath=os.path.join(PLOT_DIR, "5_confronto_polare.png"),
-        x_col="cl",
-        y_col="cd",
-        title="Confronto Polare ($C_d$ vs $C_l$) (Simulazione vs Dati Sperimentali)",
-        x_label="$C_l$",
-        y_label="$C_d$"
-    )
-
-    # =======================
-    # 6. PLOT: Confronto curva di portanza per diverse incidenze/condizioni
-    # =======================
-    print("\n--- Inizio Elaborazione per Plot 6: Confronto Portanza Nuove Condizioni ---")
-
-    files_nuove_condizioni = [
-        "ALL_AOA_i=0.000_513x257/dati_sperimentali_n0012_Ladson_i0.002_i0005.csv", # Assumendo .csv
-        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.002.csv",          # Assumendo .csv
-        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.005.csv"           # Assumendo .csv
+    plot_configs_confronto_base = [
+        ("Simulazione 513x257", stile_numerico),
+        ("Dati Sperimentali (Ladson)", stile_sperimentale)
     ]
-    labels_nuove_condizioni = [
-        "Sperimentale i0.002_i0005",
-        "Numerico i0.002",
-        "Numerico i0.005"
+    plot_coefficiente(files_confronto_base, plot_configs_confronto_base, os.path.join(PLOT_DIR, "4_confronto_portanza_n0012_i0_con_Ladson.png"),
+                      x_col="alfa", y_col="cl", title="Confronto Portanza (Simulazione vs Dati Sperimentali)", x_label="Alfa [°]", y_label="$C_l$")
+    plot_coefficiente(files_confronto_base, plot_configs_confronto_base, os.path.join(PLOT_DIR, "5_confronto_polare_n0012_i0_con_Ladson.png"),
+                      x_col="cl", y_col="cd", title="Confronto Polare ($C_d$ vs $C_l$) (Simulazione vs Dati Sperimentali)", x_label="$C_l$", y_label="$C_d$", y_min=0, y_max=0.05)
+
+    # =====================================================================
+    # 6 & 7. Plot Confronto Free Transition vs Ladson
+    # =====================================================================
+    files_confronto_ladson = [
+        "ALL_AOA_i=0.000_513x257/dati_sperimentali_n0012_Ladson_i0.002_i0005.csv",
+        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.002.csv",          
+        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.005.csv"
     ]
+    plot_configs_confronto_ladson = [
+        ("Sperimentale (Ladson)", stile_sperimentale),
+        ("Numerico i0.002", stile_numerico),
+        ("Numerico i0.005", stile_numerico)
+    ]
+    plot_coefficiente(files_confronto_ladson, plot_configs_confronto_ladson, os.path.join(PLOT_DIR, "6_curva_portanza_confronto_i0.002_0.005_con_ladson.png"),
+                      x_col="alfa", y_col="cl", title="Confronto Portanza ($C_l$ vs $\\alpha$) - Dati Ladson", x_label="Alfa [°]", y_label="$C_l$")
+    plot_coefficiente(files_confronto_ladson, plot_configs_confronto_ladson, os.path.join(PLOT_DIR, "7_curva_polare_i0.002_0.005_con_confronto_ladson.png"),
+                      x_col="cl", y_col="cd", title="Confronto Polare ($C_d$ vs $C_l$) - Dati Ladson", x_label="$C_l$", y_label="$C_d$")
 
-    plot_coefficiente(
-        files=files_nuove_condizioni,
-        labels=labels_nuove_condizioni,
-        outpath=os.path.join(PLOT_DIR, "6_confronto_portanza_nuove_condizioni.png"),
-        x_col="alfa",
-        y_col="cl",
-        title="Curva di Portanza - Confronto Nuove Condizioni",
-        x_label="Alfa [°]",
-        y_label="$C_l$"
-    )
+    # =====================================================================
+    # 8 & 9. Plot Confronto Nuove Condizioni vs Abott
+    # =====================================================================
+    files_lift_abott = [
+        "ALL_AOA_i=0.000_513x257/dati_sperimentali_n0012_Abott_i0002_i0005.csv",
+        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.002.csv",          
+        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.005.csv"
+    ]
+    plot_configs_lift_abott = [
+        ("Sperimentale (Abott)", stile_sperimentale),
+        ("Numerico i0.002", stile_numerico),
+        ("Numerico i0.005", stile_numerico)
+    ]
+    plot_coefficiente(files_lift_abott, plot_configs_lift_abott, os.path.join(PLOT_DIR, "8_curva_portanza_confronto_i0.002_0.005_con_abott.png"),
+                      x_col="alfa", y_col="cl", title="Confronto Portanza ($C_l$ vs $\\alpha$) - Dati Abott", x_label="Alfa [°]", y_label="$C_l$")
+    
+    files_polar_abott = [
+        "ALL_AOA_i=0.000_513x257/dati_sperimentali_POLARE_ABOTT_i0002_i0005.csv",
+        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.002.csv",          
+        "ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.005.csv"
+    ]
+    plot_configs_polar_abott = [
+        ("Sperimentale (Abott Polare)", stile_sperimentale),
+        ("Numerico i0.002", stile_numerico),
+        ("Numerico i0.005", stile_numerico)
+    ]
+    plot_coefficiente(files_polar_abott, plot_configs_polar_abott, os.path.join(PLOT_DIR, "9_curva_polare_confronto_i0.002_0.005_con_abott.png"),
+                      x_col="cl", y_col="cd", title="Confronto Polare ($C_d$ vs $C_l$) - Dati Abott", x_label="$C_l$", y_label="$C_d$")
 
-    print("\n✅ Tutti i plot sono stati generati con successo.")
+
+    print("\n Tutti i plot sono stati generati con successo.")
