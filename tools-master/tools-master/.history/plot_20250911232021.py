@@ -44,6 +44,82 @@ def safe_read_csv(filepath):
 # =======================
 # 1. Plot Convergenza Spaziale 
 # =======================
+# def plot_convergenza():
+#     files = [
+#         ("ALL_AOA_i=0.000_129x64/dati_numerici_n0012_129_65_i0.csv", "129x65"),
+#         ("ALL_AOA_i=0.000_257x129/dati_numerici_n0012_257_129_i0.000.csv", "257x129"),
+#         ("ALL_AOA_i=0.000_513x257/dati_numerici_n0012_513_257_i0.csv", "513x257"),
+#         ("ALL_AOA_i=0.000_1000x512/dati_numerici_n0012_1000_513_i0.csv", "1000x513"),
+#     ]
+
+#     x_cl, y_cl = [], []
+#     data_cd = {0: ([], []), 10: ([], []), 16: ([], [])}
+
+#     print("--- 1. Inizio Elaborazione per Convergenza Spaziale ---")
+#     for filepath, label in files:
+#         if not os.path.exists(filepath):
+#             print(f"ATTENZIONE: Il file '{filepath}' non è stato trovato.")
+#             continue
+#         try:
+#             df = pd.read_csv(filepath)
+#             df.columns = df.columns.str.strip()
+#             angle_col = 'AOA' if 'AOA' in df.columns else 'alfa'
+
+#             # Cerca solo le cifre seguite da 'x', senza il trattino basso iniziale
+#             match = re.search(r'(\d+)x', label) 
+            
+#             if not match:
+#                 print(f"ATTENZIONE: Impossibile estrarre N da '{label}'.")
+#                 continue
+            
+#             N = int(match.group(1))
+#             x_val = 1 / N
+
+#             # Estrazione dati per Cl
+#             cl_row = df[df[angle_col] == 2]
+#             if not cl_row.empty:
+#                 x_cl.append(x_val)
+#                 y_cl.append(cl_row['Cl'].iloc[0])
+
+#             # Estrazione dati per Cd
+#             for alfa_val in [0, 10, 16]:
+#                 if alfa_val == 0 or N != 1000: # Condizione originale
+#                     cd_row = df[df[angle_col] == alfa_val]
+#                     if not cd_row.empty:
+#                         data_cd[alfa_val][0].append(x_val)
+#                         data_cd[alfa_val][1].append(cd_row['Cd'].iloc[0])
+#             print(f"OK: {filepath}")
+#         except Exception as e:
+#             print(f"ERRORE durante l'elaborazione di '{filepath}': {e}")
+
+#     fig, axs = plt.subplots(2, 2, figsize=(15, 11))
+#     fig.suptitle('Analisi di Convergenza Spaziale', fontsize=18, fontweight='bold')
+
+#     def sort_and_plot(ax, x_data, y_data, color, title):
+#         if x_data and y_data:
+#             punti_ordinati = sorted(zip(x_data, y_data))
+#             x_ordinato, y_ordinato = zip(*punti_ordinati)
+#             # Aggiunto il 'label' qui per farlo apparire in legenda
+#             ax.plot(x_ordinato, y_ordinato, marker='o', linestyle='-', color=color, label='Dati numerici')
+#         else:
+#             ax.text(0.5, 0.5, 'Dati non disponibili', ha='center', va='center')
+        
+#         ax.set_title(title, fontsize=12)
+#         ax.set_xlabel('1/N (h)', fontsize=10)
+#         ax.set_ylabel('Coefficiente', fontsize=10)
+#         ax.grid(True, linestyle='--', alpha=0.6)
+#         ax.legend() # Ora troverà il label 'Dati numerici'
+
+#     sort_and_plot(axs[0, 0], x_cl, y_cl, 'red', 'Convergenza $C_l$ per $\\alpha=2^\\circ$')
+#     sort_and_plot(axs[0, 1], data_cd[0][0], data_cd[0][1], 'blue', 'Convergenza $C_d$ per $\\alpha=0^\\circ$')
+#     sort_and_plot(axs[1, 0], data_cd[10][0], data_cd[10][1], 'green', 'Convergenza $C_d$ per $\\alpha=10^\\circ$')
+#     sort_and_plot(axs[1, 1], data_cd[16][0], data_cd[16][1], 'purple', 'Convergenza $C_d$ per $\\alpha=16^\\circ$')
+
+#     axs[0, 0].invert_yaxis()
+#     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+#     save_path = os.path.join(PLOT_DIR, "1_convergenza_spaziale_n0012_i0.png")
+#     plt.savefig(save_path)
+#     print(f"Grafico di convergenza salvato in: '{save_path}'\n")
 
 def plot_convergenza():
     """
@@ -82,7 +158,7 @@ def plot_convergenza():
 
         # Cd per alfa = 0, 10, 16
         for alfa_val in [0, 10, 16]:
-            #if alfa_val == 0 or N != 1000:
+            if alfa_val == 0 or N != 1000:
                 cd_row = df[df["alfa"] == alfa_val]
                 if not cd_row.empty:
                     data_cd[alfa_val][0].append(x_val)
@@ -172,63 +248,64 @@ def plot_coefficiente(files, plot_configs, outpath, x_col, y_col, title, x_label
     plt.close()
     print(f"Grafico '{title}' salvato in: '{outpath}'\n")
 
-
-def plot_coefficiente(files, plot_configs, outpath, x_col, y_col, title, x_label, y_label,
-                      x_min=None, x_max=None, y_min=None, y_max=None,
-                      highlight_last_point=None):
+def plot_coefficiente(files, plot_configs, outpath, x_col, y_col, title, x_label, y_label, 
+                      x_min=None, x_max=None, y_min=None, y_max=None, 
+                      highlight_last_point=None): # <-- NUOVO PARAMETRO
     """
-    Funzione generica che accetta configurazioni di stile e può evidenziare
-    l'ultimo punto di un file specifico, senza collegarlo alla linea.
+    Funzione generica che accetta configurazioni di stile e può evidenziare 
+    l'ultimo punto di un file specifico.
     """
     print(f"--- Inizio Elaborazione per: {title} ---")
     plt.figure(figsize=(10, 7))
+    
+    point_to_highlight = None # Variabile per conservare le coordinate del punto speciale
 
-    point_to_highlight = None  # Variabile per conservare le coordinate del punto speciale
-
+    # Usiamo enumerate per ottenere l'indice 'i' del file
     for i, (filepath, (label, style)) in enumerate(zip(files, plot_configs)):
         df = safe_read_csv(filepath)
-
+        
         # Se questo è il file da cui estrarre l'ultimo punto, salvalo
         if i == highlight_last_point and not df.empty:
             last_row = df.iloc[-1]
             if x_col in last_row and y_col in last_row:
                 point_to_highlight = (last_row[x_col], last_row[y_col])
 
-            # --- crea una copia del DataFrame ESCLUDENDO l'ultima riga
-            df_plot_current_series = df.iloc[:-1] # Esclude l'ultima riga
-        else:
-            df_plot_current_series = df # Usa il DataFrame completo
+        # per limite range asse x
+        if x_min is not None: df = df[df[x_col] >= x_min]
+        if x_max is not None: df = df[df[x_col] <= x_max]
 
-        # Applica i limiti di range all'attuale DataFrame per il plotting
-        if x_min is not None: df_plot_current_series = df_plot_current_series[df_plot_current_series[x_col] >= x_min]
-        if x_max is not None: df_plot_current_series = df_plot_current_series[df_plot_current_series[x_col] <= x_max]
-        if y_min is not None: df_plot_current_series = df_plot_current_series[df_plot_current_series[y_col] >= y_min]
-        if y_max is not None: df_plot_current_series = df_plot_current_series[df_plot_current_series[y_col] <= y_max]
-
-        # Plot della serie normale (senza l'ultimo punto se evidenziato)
-        if not df_plot_current_series.empty and x_col in df_plot_current_series.columns and y_col in df_plot_current_series.columns:
-            df_clean = df_plot_current_series.dropna(subset=[x_col, y_col])
+        # per limite range asse y
+        if y_min is not None: df = df[df[y_col] >= y_min]
+        if y_max is not None: df = df[df[y_col] <= y_max]
+            
+        if not df.empty and x_col in df.columns and y_col in df.columns:
+            df_clean = df.dropna(subset=[x_col, y_col])
             if not df_clean.empty:
                 df_sorted = df_clean.sort_values(by=x_col)
                 plt.plot(df_sorted[x_col], df_sorted[y_col], label=label, **style)
-
-    # Disegna il punto da evidenziare (solo se esiste)
+    
+    # --- NUOVO BLOCCO DI CODICE ---
+    # Se abbiamo trovato un punto da evidenziare, lo disegniamo ora
     if point_to_highlight:
-        plt.scatter(point_to_highlight[0], point_to_highlight[1],
-                    color='green',
-                    marker='o',
-                    s=100,  # Aumentato s per una maggiore visibilità
-                    label='Punto Finale Simulazione',
-                    zorder=5)
-
+        plt.scatter(point_to_highlight[0], point_to_highlight[1], 
+                    color='green',          # Colore verde
+                    marker='o',             # Forma a pallino
+                    s=25,                  # Dimensione del pallino
+                    label='Simulazione YPLUS 0.45', # Etichetta per la legenda
+                    zorder=5)               # zorder alto per disegnarlo sopra a tutto
+    # --------------------------
+            
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.title(title)
     plt.grid(True)
-    plt.legend()
+    plt.legend() # La legenda includerà anche il nuovo punto
     plt.savefig(outpath)
     plt.close()
     print(f"Grafico '{title}' salvato in: '{outpath}'\n")
+
+
+
 
 # =======================
 # ESECUZIONE PRINCIPALE
@@ -277,7 +354,7 @@ if __name__ == "__main__":
         ("Dati Sperimentali (Ladson)", stile_sperimentale)
     ]
     plot_coefficiente(files_confronto_base, plot_configs_confronto_base, os.path.join(PLOT_DIR, "4_confronto_portanza_n0012_i0_con_Ladson.png"),
-                      x_col="alfa", y_col="cl", title="Confronto Portanza (Simulazione vs Dati Sperimentali)", x_label="Alfa [°]", y_label="$C_l$", highlight_last_point=0)
+                      x_col="alfa", y_col="cl", title="Confronto Portanza (Simulazione vs Dati Sperimentali)", x_label="Alfa [°]", y_label="$C_l$")
     plot_coefficiente(files_confronto_base, plot_configs_confronto_base, os.path.join(PLOT_DIR, "5_confronto_polare_n0012_i0_con_Ladson.png"),
                       x_col="cl", y_col="cd", title="Confronto Polare ($C_d$ vs $C_l$) (Simulazione vs Dati Sperimentali)", x_label="$C_l$", y_label="$C_d$", y_min=0, y_max=0.05, highlight_last_point=0)
 
