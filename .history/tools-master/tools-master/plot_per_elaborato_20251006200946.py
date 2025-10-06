@@ -488,8 +488,8 @@ if __name__ == "__main__":
 
 
     files_cp_1 = [
-    "",
-    ""
+    "FREE_TRANSITION_0012/CP_alfa=0_paraview_0012_i=0.003.csv",
+    "FREE_TRANSITION_0012/CP_ladson_sperimental_alfa=10"
     ]
 
     plot_cp(files_cp_1, labels_cp, os.path.join(PLOT_DIR, "Cp_confronto_numerico_vs_Ladson.png"),

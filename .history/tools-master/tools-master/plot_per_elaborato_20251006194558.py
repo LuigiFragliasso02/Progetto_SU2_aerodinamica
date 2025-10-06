@@ -9,54 +9,6 @@ PLOT_DIR = "plot_tesi_per_elaborato"
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-
-def leggi_cp(filepath):
-    """
-    Legge un file di Cp anche se ha separatori sporchi (; , ,)
-    Restituisce un DataFrame con colonne 'x' e 'cp'
-    """
-    with open(filepath, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    dati_puliti = []
-    for line in lines:
-        line = line.replace(';', ',')
-        line = line.replace('\xa0', '').strip()
-        parts = [p for p in re.split('[,]+', line) if p]
-        if len(parts) >= 2:
-            try:
-                x = float(parts[0])
-                cp = float(parts[1])
-                dati_puliti.append([x, cp])
-            except ValueError:
-                continue
-
-    df = pd.DataFrame(dati_puliti, columns=["x", "cp"])
-    return df
-
-
-def plot_cp(files, labels, outpath, title):
-    plt.figure(figsize=(10,7))
-    for filepath, label in zip(files, labels):
-        df = leggi_cp(filepath)
-        if not df.empty:
-            # se il nome contiene "sperimentale" o "ladson", usa pallini rossi
-            if "sperimentale" in filepath.lower() or "ladson" in filepath.lower() or "abbott" in filepath.lower():
-                plt.scatter(df["x"], df["cp"], color="red", s=40, label=label, zorder=3)
-            else:
-                plt.plot(df["x"], df["cp"], label=label, linewidth=2)
-    plt.gca().invert_yaxis()  # convenzione Cp (verso il basso)
-    plt.xlabel("x/c", fontsize=14)
-    plt.ylabel("$C_p$", fontsize=14)
-    plt.title(title, fontsize=16)
-    plt.legend(fontsize=12)
-    plt.grid(True, linestyle="--", alpha=0.6)
-    plt.tight_layout()
-    plt.savefig(outpath, dpi=300)
-    plt.close()
-    print(f"✅ Grafico Cp salvato in: {outpath}")
-
-
 def safe_read_csv(filepath):
     """
     Legge un file CSV potenzialmente "sporco", pulisce i dati e le colonne,
@@ -417,7 +369,7 @@ if __name__ == "__main__":
     # Definiamo la lista delle configurazioni (etichette e stili)
     plot_configs_combinati_free_trans = [
         ("Mesh 513x257", stile_numerico),
-        ("Dati Sperimentali Abbott", stile_sperimentale)
+        ("Dati Sperimentali (abbott)", stile_sperimentale)
     ]
     plot_coefficiente(
         files_combinati_free_trans,
@@ -425,7 +377,7 @@ if __name__ == "__main__":
         os.path.join(PLOT_DIR, "COMBINATO_portanza_mesh_vs_sperimentale_free_transition.png"),
         x_col="alfa", 
         y_col="cl",
-        title="Curva di portanza - NACA 0012, Re=6E06, M=0.15",
+        title="Curva di portanza al variare del mesh - NACA 0012, Re=6E06, M=0.15",
         x_label="Alfa [°]", 
         y_label="$C_l$",
         x_min=0.0, 
@@ -442,7 +394,7 @@ if __name__ == "__main__":
         os.path.join(PLOT_DIR, "COMBINATO_polare_mesh_vs_sperimentale_free_transition.png"),
         x_col="cl",  
         y_col="cd", 
-        title="Curva polare - NACA 0012, Re=6E06, M=0.15",
+        title="Curva polare al variare del mesh - NACA 0012, Re=6E06, M=0.15",
         x_label="$C_l$",
         y_label="$C_d$", 
         y_min=0.0, 
@@ -452,47 +404,6 @@ if __name__ == "__main__":
         legend_fontsize=16
     )
 
-    # files_combinati_free_trans_cp = [
-    # "FREE_TRANSITION_0012\CP_alfa=0_paraview_0012_i=0.003.csv",
-    # "FREE_TRANSITION_0012\cp_ladson_sperimental,alfa=0.csv"
-    # ]
 
-    # plot_configs_combinati_free_trans_cp = [
-    #     ("Dati numerici - mesh 513x257", stile_numerico),
-    #     ("Dati Sperimentali Ldson", stile_sperimentale)
-    # ]
-    # plot_coefficiente(
-    #     files_combinati_free_trans_cp,
-    #     plot_configs_combinati_free_trans_cp,
-    #     os.path.join(PLOT_DIR, "Cp_paraview_vs_sperimentale_free_transition.png"),
-    #     x_col="alfa", 
-    #     y_col="cl",
-    #     title="Confronto del cp numerico con i dati sperimentali Ladson - NACA 0012, Re=6E06, M=0.15, alfa=0",
-    #     x_label="$x$", 
-    #     y_label="$C_p$",
-    #     x_min=0.0, 
-    #     x_max=20,
-    #     label_fontsize=18, 
-    #     title_fontsize=15, 
-    #     legend_fontsize=16
-    # )
-
-    files_cp = [
-    "FREE_TRANSITION_0012/CP_alfa=0_paraview_0012_i=0.003.csv",
-    "FREE_TRANSITION_0012/cp_ladson_sperimental,alfa=0.csv"
-    ]
-    labels_cp = ["Numerico (513x257)", "Sperimentale (Ladson)"]
-
-    plot_cp(files_cp, labels_cp, os.path.join(PLOT_DIR, "Cp_confronto_numerico_vs_Ladson.png"),
-            "Confronto Cp numerico vs sperimentale, NACA0012, α=0°, Re=6E06, M=0.15")
-
-
-    files_cp_1 = [
-    "",
-    ""
-    ]
-
-    plot_cp(files_cp_1, labels_cp, os.path.join(PLOT_DIR, "Cp_confronto_numerico_vs_Ladson.png"),
-            "Confronto Cp numerico vs sperimentale, NACA0012, α=10°, Re=6E06, M=0.15")
 
     print("\n Tutti i plot sono stati generati con successo.")

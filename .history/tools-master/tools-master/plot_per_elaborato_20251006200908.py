@@ -488,11 +488,11 @@ if __name__ == "__main__":
 
 
     files_cp_1 = [
-    "",
-    ""
+    "FREE_TRANSITION_0012/CP_alfa=0_paraview_0012_i=0.003.csv",
+    "FREE_TRANSITION_0012/cp_ladson_sperimental,alfa=0.csv"
     ]
 
     plot_cp(files_cp_1, labels_cp, os.path.join(PLOT_DIR, "Cp_confronto_numerico_vs_Ladson.png"),
-            "Confronto Cp numerico vs sperimentale, NACA0012, α=10°, Re=6E06, M=0.15")
+            "Confronto Cp numerico vs sperimentale, NACA0012, α=0°, Re=6E06, M=0.15")
 
     print("\n Tutti i plot sono stati generati con successo.")
